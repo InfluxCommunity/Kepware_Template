@@ -1,0 +1,5 @@
+|#each VALUES|kepware,factory=germany |TAGNAME|=|VALUE| |TIMESTAMP||#unless @last||LINEFEED||/unless||/each|
+
+
+
+

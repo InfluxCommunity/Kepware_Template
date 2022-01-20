@@ -1,0 +1,20 @@
+kepware,factory=germany Bender.Bender.Current=1.49179125 1641991121912
+kepware,factory=germany Bender.Bender.Temperature=35.0513954 1641991121912
+kepware,factory=germany Bender.Bender.Voltage=23.7500591 1641991121912
+kepware,factory=germany Bender.Bender.Current=1.47310805 1641991122912
+kepware,factory=germany Bender.Bender.Temperature=35.0751686 1641991122912
+kepware,factory=germany Bender.Bender.Voltage=24.1405582 1641991122912
+kepware,factory=germany Bender.Bender.Current=1.48720217 1641991123927
+kepware,factory=germany Bender.Bender.Temperature=35.0761414 1641991123927
+kepware,factory=germany Bender.Bender.Voltage=23.9336605 1641991123927
+kepware,factory=germany Bender.Bender.Current=1.51792192 1641991125928
+kepware,factory=germany Bender.Bender.Temperature=35.1993332 1641991125928
+kepware,factory=germany Bender.Bender.Voltage=24.0841331 1641991125928
+kepware,factory=germany Bender.Bender.Good Quantity=19 1641991125928
+kepware,factory=germany Bender.Bender.Current=1.51294863 1641991127919
+kepware,factory=germany Bender.Bender.Temperature=35.27314 1641991127919
+kepware,factory=germany Bender.Bender.Voltage=24.1220016 1641991127919
+kepware,factory=germany Bender.Bender.Current=1.51384962 1641991128936
+kepware,factory=germany Bender.Bender.Temperature=35.2211037 1641991128936
+kepware,factory=germany Bender.Bender.Voltage=23.8473282 1641991128936
+kepware,factory=germany Bender.Bender.Good Quantity=20 1641991128936
