@@ -1,0 +1,1253 @@
+apiVersion: influxdata.com/v2alpha1
+kind: Label
+metadata:
+    name: tasty-mahavira-f2c001
+spec:
+    color: '#006f49'
+    name: kepware
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Bucket
+metadata:
+    name: dangerous-blackburn-32c001
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    name: factory_data_downsample
+    retentionRules:
+      - everySeconds: 86400
+        type: expire
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Bucket
+metadata:
+    name: focused-leavitt-f2c005
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    name: factory_data
+    retentionRules:
+      - everySeconds: 86400
+        type: expire
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Task
+metadata:
+    name: clever-dubinsky-32c005
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    every: 1h
+    name: transform-factory-data
+    query: |-
+        import "strings"
+
+
+
+        getTag = (f, i) => {
+            tmp = strings.split(v: f, t: ".")
+
+            return tmp[i]
+        }
+
+        raw_machine_data = from(bucket: "factory_data")
+            |> range(start: -1h)
+            |> filter(fn: (r) => r["_measurement"] == "kepware")
+            |> aggregateWindow(every: 1m, fn: last, createEmpty: false)
+            |> yield(name: "mean")
+            //
+            |> map(
+                fn: (r) => ({r with
+                    channel: getTag(f: r["_field"], i: 0),
+                    device: getTag(f: r["_field"], i: 1),
+                    _field: getTag(f: r["_field"], i: 2),
+                }),
+            )
+            |> to(bucket: "factory_data_downsample")
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Variable
+metadata:
+    name: determined-cerf-b2c003
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    language: flux
+    name: buckets
+    query: |-
+        buckets()
+          |> filter(fn: (r) => r.name !~ /^_/)
+          |> rename(columns: {name: "_value"})
+          |> keep(columns: ["_value"])
+    type: query
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Variable
+metadata:
+    name: elegant-easley-72c00b
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    language: flux
+    name: channel
+    query: |-
+        import "influxdata/influxdb/schema"
+
+        schema.tagValues(
+          bucket: "factory_data_downsample",
+          tag: "channel",
+        )
+    type: query
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Variable
+metadata:
+    name: nice-chandrasekhar-72c003
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    language: flux
+    name: factory
+    query: |-
+        import "influxdata/influxdb/schema"
+
+        schema.tagValues(
+          bucket: "factory_data_downsample",
+          tag: "factory",
+        )
+    selected:
+      - germany
+    type: query
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Variable
+metadata:
+    name: rustling-bose-72c007
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    language: flux
+    name: device
+    query: |-
+        import "influxdata/influxdb/schema"
+
+        schema.tagValues(
+          bucket: "factory_data_downsample",
+          tag: "device",
+        )
+    selected:
+      - WeldingRobot
+    type: query
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Dashboard
+metadata:
+    name: cool-swartz-72c001
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    charts:
+      - colors:
+          - hex: '#00C9FF'
+            id: "0"
+            name: laser
+            type: min
+            value: 24
+          - hex: '#32B08C'
+            id: 8fb02b63-4d75-4859-ab69-da1a46a5ab47
+            name: viridian
+            type: threshold
+            value: 30
+          - hex: '#F48D38'
+            id: db05e9e1-c962-45cf-941c-55a8c0e23c01
+            name: tiger
+            type: threshold
+            value: 50
+          - hex: '#DC4E58'
+            id: 0777ee89-a0b3-4410-9428-c8a5b22d6344
+            name: fire
+            type: threshold
+            value: 70
+          - hex: '#9394FF'
+            id: "1"
+            name: comet
+            type: max
+            value: 100
+        decimalPlaces: 2
+        height: 4
+        kind: Gauge
+        name: Temperature
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+
+                  |> filter(fn: (r) => r["_field"] == "Temperature")
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend: {}
+        suffix: °C
+        tickSuffix: °C
+        width: 4
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#FD7A5D'
+            id: 4910cc51-a3a6-48ee-b816-1aefdc7e390f
+            name: Delorean
+            type: scale
+          - hex: '#5F1CF2'
+            id: 516372e8-20d2-481e-930f-b233745e4d44
+            name: Delorean
+            type: scale
+          - hex: '#4CE09A'
+            id: 60cffec7-7faf-48d4-a520-6c1f628db4d4
+            name: Delorean
+            type: scale
+        geom: line
+        height: 4
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Good and Bad Quantity
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+                  |> filter(fn: (r) => r["_field"] == "Bad_Quantity" or r["_field"] == "Good_Quantity" )
+
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        yCol: _value
+        yPos: 4
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 2
+        height: 4
+        hoverDimension: auto
+        kind: Single_Stat_Plus_Line
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Voltage
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+
+                  |> filter(fn: (r) => r["_field"] == "Voltage")
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 8
+        widthRatio: 1
+        xPos: 4
+      - colors:
+          - hex: '#FFB94A'
+            id: base
+            name: pineapple
+            type: background
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Machine State
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+                 |> filter(fn: (r) => r["_field"] == "Running")
+
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend: {}
+        width: 2
+        xPos: 4
+        yPos: 4
+      - axes:
+          - domain:
+              - 1.64321496e+12
+              - 1.64322864e+12
+            name: x
+          - name: "y"
+        colors:
+          - hex: '#31C0F6'
+          - hex: '#BC00B8'
+          - hex: '#FF7E27'
+        height: 3
+        kind: Scatter
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Machine Running
+        queries:
+          - query: "from(bucket: \"factory_data_downsample\")\n  |> range(start: v.timeRangeStart,
+                stop: v.timeRangeStop)\n  |> filter(fn: (r) => r[\"_measurement\"]
+                == \"kepware\")\n  |> filter(fn: (r) => r[\"factory\"] == v.factory)\n
+                \ |> filter(fn: (r) => r[\"channel\"] == v.channel)\n  |> filter(fn:
+                (r) => r[\"device\"] == v.device)\n |> filter(fn: (r) => r[\"_field\"]
+                == \"Running\")\n \n  |> toInt()\n\n\n  |> aggregateWindow(every:
+                v.windowPeriod, fn: last, createEmpty: false)\n  |> yield(name: \"mean\")"
+        staticLegend: {}
+        width: 8
+        xCol: _time
+        xPos: 4
+        yCol: _value
+        yPos: 5
+      - colors:
+          - hex: '#4591ED'
+            id: base
+            name: ocean
+            type: background
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Running Product
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+                 |> filter(fn: (r) => r["_field"] == "RunningProduct")
+
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend: {}
+        width: 2
+        xPos: 6
+        yPos: 4
+      - colors:
+          - hex: '#ffffff'
+            id: base
+            name: white
+            type: background
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Running Job Order
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+                 |> filter(fn: (r) => r["_field"] == "RunningJobOrder")
+
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend: {}
+        width: 2
+        xPos: 8
+        yPos: 4
+      - colors:
+          - hex: '#7CE490'
+            id: base
+            name: honeydew
+            type: background
+          - hex: '#BF3D5E'
+            id: 8a0da4dd-5f06-404c-b0c4-e7ff28a07489
+            name: ruby
+            type: background
+            value: 0.1
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Downtime Reason Code
+        queries:
+          - query: |-
+                from(bucket: "factory_data_downsample")
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["factory"] == v.factory)
+                  |> filter(fn: (r) => r["channel"] == v.channel)
+                  |> filter(fn: (r) => r["device"] == v.device)
+                 |> filter(fn: (r) => r["_field"] == "DowntimeReasonCode")
+
+
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend: {}
+        width: 2
+        xPos: 10
+        yPos: 4
+    description: Downsampled and normalised machine data.
+    name: Kepware Machine Data
+---
+apiVersion: influxdata.com/v2alpha1
+kind: Dashboard
+metadata:
+    name: rustling-tharp-b2c001
+spec:
+    associations:
+      - kind: Label
+        name: tasty-mahavira-f2c001
+    charts:
+      - height: 1
+        kind: Markdown
+        name: Name this Cell
+        note: '# Production Lines'
+        staticLegend: {}
+        width: 12
+      - height: 1
+        kind: Markdown
+        name: Name this Cell
+        note: '## Line 1'
+        staticLegend: {}
+        width: 4
+        yPos: 1
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Count
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line01.Line01PartProduction.ProductionCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        yPos: 2
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#31C0F6'
+            id: d82f5afe-2c05-4918-8f90-9bd719679d4a
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#A500A5'
+            id: e56541ff-b881-46a0-a235-a2fbc108aa7b
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#FF7E27'
+            id: 88c2bd35-05cd-4516-8039-fc9fbc386fa4
+            name: Nineteen Eighty Four
+            type: scale
+        geom: line
+        height: 2
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Production Count and Waste
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line01.Line01PartProduction.WasteCount" or r["_field"] == "Line01.Line01PartProduction.ProductionCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        yCol: _value
+        yPos: 3
+      - height: 1
+        kind: Markdown
+        name: Name this Cell (Clone)
+        note: '# Machine Production & Health'
+        staticLegend: {}
+        width: 12
+        yPos: 5
+      - height: 1
+        kind: Markdown
+        name: Name this Cell (Clone) (Clone)
+        note: '## CNC'
+        staticLegend: {}
+        width: 6
+        yPos: 6
+      - colors:
+          - hex: '#00C9FF'
+            id: "0"
+            name: laser
+            type: min
+            value: 24
+          - hex: '#32B08C'
+            id: 697ddaf8-d95c-4e75-9ce4-9bc3092ec6a9
+            name: viridian
+            type: threshold
+            value: 30
+          - hex: '#F48D38'
+            id: a41d6be4-4490-4d8c-9d98-b870349d33c1
+            name: tiger
+            type: threshold
+            value: 50
+          - hex: '#BF3D5E'
+            id: 6d58c79e-2de5-49bc-acaf-bd1fa3f88d2b
+            name: ruby
+            type: threshold
+            value: 70
+          - hex: '#9394FF'
+            id: "1"
+            name: comet
+            type: max
+            value: 100
+        decimalPlaces: 2
+        height: 3
+        kind: Gauge
+        name: Machine Temperature
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.Temperature")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        suffix: °C
+        tickSuffix: °C
+        width: 3
+        yPos: 7
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Job Order
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.RunningJobOrder")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 6
+        yPos: 10
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 2
+        kind: Single_Stat
+        name: Good Quantity
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.Good_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        yPos: 11
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Waste
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line01.Line01PartProduction.WasteCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 1
+        yPos: 2
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 2
+        kind: Single_Stat
+        name: Bad Quantity
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.Bad_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 1
+        yPos: 11
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: 'Current Product '
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line01.Line01PartProduction.RunningProductName")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 2
+        xPos: 2
+        yPos: 2
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#31C0F6'
+            id: d82f5afe-2c05-4918-8f90-9bd719679d4a
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#A500A5'
+            id: e56541ff-b881-46a0-a235-a2fbc108aa7b
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#FF7E27'
+            id: 88c2bd35-05cd-4516-8039-fc9fbc386fa4
+            name: Nineteen Eighty Four
+            type: scale
+        geom: line
+        height: 2
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Good and Bad Quanity
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.Bad_Quantity" or r["_field"] == "CNCTurning.CNCTurning.Good_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: median, createEmpty: false)
+                  |> yield(name: "median")
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        xPos: 2
+        yCol: _value
+        yPos: 11
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 2
+        height: 3
+        hoverDimension: auto
+        kind: Single_Stat_Plus_Line
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Voltage
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "CNCTurning.CNCTurning.Voltage")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 3
+        widthRatio: 1
+        xCol: _time
+        xPos: 3
+        yCol: _value
+        yPos: 7
+      - height: 1
+        kind: Markdown
+        name: Name this Cell (Clone)
+        note: '## Line 2'
+        staticLegend: {}
+        width: 4
+        xPos: 4
+        yPos: 1
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Count
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line02.Line02SheetMetalProcessing.ProductionCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 4
+        yPos: 2
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#31C0F6'
+            id: d82f5afe-2c05-4918-8f90-9bd719679d4a
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#A500A5'
+            id: e56541ff-b881-46a0-a235-a2fbc108aa7b
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#FF7E27'
+            id: 88c2bd35-05cd-4516-8039-fc9fbc386fa4
+            name: Nineteen Eighty Four
+            type: scale
+        geom: line
+        height: 2
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Production Count and Waste
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line02.Line02SheetMetalProcessing.ProductionCount" or r["_field"] == "Line02.Line02SheetMetalProcessing.WasteCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        xPos: 4
+        yCol: _value
+        yPos: 3
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Waste
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line02.Line02SheetMetalProcessing.WasteCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 5
+        yPos: 2
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Current Product
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line02.Line02SheetMetalProcessing.RunningProductName")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 2
+        xPos: 6
+        yPos: 2
+      - height: 1
+        kind: Markdown
+        name: Name this Cell (Clone)
+        note: '## Welding Robot Arm'
+        staticLegend: {}
+        width: 6
+        xPos: 6
+        yPos: 6
+      - colors:
+          - hex: '#00C9FF'
+            id: "0"
+            name: laser
+            type: min
+            value: 24
+          - hex: '#32B08C'
+            id: 697ddaf8-d95c-4e75-9ce4-9bc3092ec6a9
+            name: viridian
+            type: threshold
+            value: 30
+          - hex: '#F48D38'
+            id: a41d6be4-4490-4d8c-9d98-b870349d33c1
+            name: tiger
+            type: threshold
+            value: 50
+          - hex: '#BF3D5E'
+            id: 6d58c79e-2de5-49bc-acaf-bd1fa3f88d2b
+            name: ruby
+            type: threshold
+            value: 70
+          - hex: '#9394FF'
+            id: "1"
+            name: comet
+            type: max
+            value: 100
+        decimalPlaces: 2
+        height: 3
+        kind: Gauge
+        name: Machine Temperature
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.Temperature")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        suffix: °C
+        tickSuffix: °C
+        width: 3
+        xPos: 6
+        yPos: 7
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 2
+        height: 1
+        kind: Single_Stat
+        name: Job Order
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.RunningJobOrder")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 6
+        xPos: 6
+        yPos: 10
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 2
+        kind: Single_Stat
+        name: Good Quantity
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.Good_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 6
+        yPos: 11
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 2
+        kind: Single_Stat
+        name: Bad Quantity
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.Bad_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 7
+        yPos: 11
+      - height: 1
+        kind: Markdown
+        name: Name this Cell (Clone) (Clone)
+        note: '## Line 3'
+        staticLegend: {}
+        width: 4
+        xPos: 8
+        yPos: 1
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Count
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line03.Line03SpecialMachining.ProductionCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 8
+        yPos: 2
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#31C0F6'
+            id: d82f5afe-2c05-4918-8f90-9bd719679d4a
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#A500A5'
+            id: e56541ff-b881-46a0-a235-a2fbc108aa7b
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#FF7E27'
+            id: 88c2bd35-05cd-4516-8039-fc9fbc386fa4
+            name: Nineteen Eighty Four
+            type: scale
+        geom: line
+        height: 2
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Production Count and Waste
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line03.Line03SpecialMachining.ProductionCount" or r["_field"] == "Line03.Line03SpecialMachining.WasteCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        xPos: 8
+        yCol: _value
+        yPos: 3
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#31C0F6'
+            id: d82f5afe-2c05-4918-8f90-9bd719679d4a
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#A500A5'
+            id: e56541ff-b881-46a0-a235-a2fbc108aa7b
+            name: Nineteen Eighty Four
+            type: scale
+          - hex: '#FF7E27'
+            id: 88c2bd35-05cd-4516-8039-fc9fbc386fa4
+            name: Nineteen Eighty Four
+            type: scale
+        geom: line
+        height: 2
+        hoverDimension: auto
+        kind: Xy
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Good and Bad Quanity
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.Good_Quantity" or r["_field"] == "WeldingRobot.WeldingRobot.Bad_Quantity")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 4
+        widthRatio: 1
+        xCol: _time
+        xPos: 8
+        yCol: _value
+        yPos: 11
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Production Waste
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line03.Line03SpecialMachining.WasteCount")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 1
+        xPos: 9
+        yPos: 2
+      - axes:
+          - base: "10"
+            name: x
+            scale: linear
+          - base: "10"
+            name: "y"
+            scale: linear
+        colorizeRows: true
+        colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 2
+        height: 3
+        hoverDimension: auto
+        kind: Single_Stat_Plus_Line
+        legendColorizeRows: true
+        legendOpacity: 1
+        legendOrientationThreshold: 1e+08
+        name: Voltage
+        opacity: 1
+        orientationThreshold: 1e+08
+        position: overlaid
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "WeldingRobot.WeldingRobot.Voltage")
+                  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+                  |> yield(name: "mean")
+        shade: true
+        staticLegend:
+            colorizeRows: true
+            opacity: 1
+            orientationThreshold: 1e+08
+            widthRatio: 1
+        width: 3
+        widthRatio: 1
+        xCol: _time
+        xPos: 9
+        yCol: _value
+        yPos: 7
+      - colors:
+          - hex: '#00C9FF'
+            id: base
+            name: laser
+            type: text
+        decimalPlaces: 0
+        height: 1
+        kind: Single_Stat
+        name: Current Product
+        queries:
+          - query: |-
+                from(bucket: v.buckets)
+                  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+                  |> filter(fn: (r) => r["_measurement"] == "kepware")
+                  |> filter(fn: (r) => r["_field"] == "Line03.Line03SpecialMachining.RunningProductName")
+                  |> aggregateWindow(every: v.windowPeriod, fn: last, createEmpty: false)
+                  |> yield(name: "last")
+        staticLegend: {}
+        width: 2
+        xPos: 10
+        yPos: 2
+    description: Kepware sample data for factory.
+    name: Factory Data
